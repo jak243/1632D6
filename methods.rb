@@ -1,6 +1,6 @@
 @variables = Array.new
 @values = Array.new
-@lines = 0
+@lines = 1
 
 #type of input
 #1 simple arithmetic

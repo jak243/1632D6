@@ -9,7 +9,7 @@ end
 
 
 while true
-    print ">"
+    print "> "
     input = gets
     input_stack = input.chomp().gsub(/\s+/m, ' ').strip.split(" ")
     result = process(input_stack)
