@@ -1,0 +1,4 @@
+Let a 4
+a a +
+Print a
+print 4 4 4 * *

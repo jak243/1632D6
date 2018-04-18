@@ -2,14 +2,23 @@
 @values = Array.new
 @lines = 1
 
-#type of input
-#1 simple arithmetic
-#2 LET
-#3 PRINT
-#0 QUIT
-#-1 something is wrong
-
 def process(input_stack)
+    type = what_type(input_stack[0])
+    if type == 0
+        exit
+    elsif type == 1
+        arithmetic(input_stack)
+    elsif type == 2
+        let(input_stack)
+    elsif type == 3
+        result  = print_stk(input_stack).to_s
+        print("#{result}\n")
+    else
+        return nil
+    end
+end
+
+def process_repl(input_stack)
     type = what_type(input_stack[0])
     if type == 0
         exit
@@ -20,7 +29,7 @@ def process(input_stack)
     elsif type == 3
         return print_stk(input_stack)
     else
-        return "error in the first token"
+        return nil
     end
 
     return result
@@ -32,26 +41,39 @@ class String
     end
 
     def is_letter?
-        self =~ /[[:alpha:]]/
+        if self.length == 1
+            self =~ /[[:alpha:]]/
+        else 
+            return false
+        end
     end 
 
     def is_operation?
         return ["+","-","*","/"].include?(self)
     end 
+
+    def numeric?
+        return Float(self) != nil rescue false
+    end
 end
 
 def is_validToken?(token)
     if token.is_i?
         return true
-    elsif token.is_letter?
-        return @variables.include? token.downcase
-    else
+    elsif token.is_letter?        
+        if !@variables.include? token.downcase
+            raise UninitializedVariable.new(token)
+        end 
         return true
+    elsif !token.numeric?
+        raise UnkownKeyword.new(token)
+    elsif !token.is_i?
+        raise OtherError("#{token} is not an integer")
     end 
 end
 
 def what_type(firstToken)
-    if firstToken.nil?
+    if firstToken.nil? || firstToken =~ /^\s*$/
         return -1
     elsif(firstToken.casecmp("LET") == 0)
         return 2
@@ -59,18 +81,21 @@ def what_type(firstToken)
         return 3
     elsif (firstToken.casecmp("QUIT") == 0)
         return 0
-    elsif firstToken.is_letter? && firstToken.length == 1 
+    elsif firstToken.is_letter?
         return 1
     elsif firstToken.is_i?
         return 1
-    else
-        return -1
+    elsif firstToken.numeric?
+        raise OtherError.new("#{firstToken} is not an integer")
+    else 
+        raise UnkownKeyword.new(firstToken)
     end    
 end
 
 def print_stk(input_stack)
     input_stack.shift
-    return arithmetic(input_stack)
+    result = arithmetic(input_stack)
+    return result
 end
 
 def arithmetic(input_stack)
@@ -78,7 +103,7 @@ def arithmetic(input_stack)
     input_stack.each do |token|
         if token.is_operation?
             if vars.length < 2
-                print "error of too many operations"
+                raise TooManyOperationsError.new(token)
                 return -1
             end
             var1 = vars.pop
@@ -89,7 +114,7 @@ def arithmetic(input_stack)
         end
     end
     if vars.length != 1
-        print "error of too many numbers"
+        raise ElementsInStackAfterEval.new(vars.length)
         return -1
     else
         returnval = vars.pop
@@ -125,20 +150,22 @@ def operate(operation, var1, var2)
     when "*"
         return val1*val2
     when "/"
+        if val2 == 0
+            raise OtherError.new("Divide by zero error")
+        end
         return val1/val2
     end
-end 
-
+end
 
 def let(input_stack)
     input_stack.shift
     if input_stack.length == 0
-        print "no token error"
+        raise OtherError.new("Let keyword with no stack")
         return -1
     end
     varname = input_stack.shift
     if !varname.is_letter?
-        print "not valid variable token error"
+        raise OtherError.new("#{varname} is not a valid variable following LET keyword")
         return -1
     end
     result = arithmetic(input_stack)
@@ -149,4 +176,46 @@ def let(input_stack)
         @values << result.to_i
     end 
     return result
+end
+
+class RPNError < StandardError
+    def initialize(msg, code)
+        @code = code 
+        super(msg)
+    end
+end
+
+class UninitializedVariable < RPNError 
+    def initialize(variable)
+        msg = "Variable #{variable.to_s} is not initialized"
+        super(msg, 1)
+    end
+end
+
+
+class TooManyOperationsError < RPNError 
+    def initialize(operator)
+        msg = "Operator #{operator.to_s} applied to empty stack"
+        super(msg, 2)
+    end
+end
+
+class ElementsInStackAfterEval < RPNError 
+    def initialize(elements)
+        msg = "#{elements.to_s} elements in stack after evaluation"
+        super(msg, 3)
+    end
+end
+
+class UnkownKeyword < RPNError 
+    def initialize(keyword)
+        msg = "Unkown keyword #{keyword.to_s.upcase}"
+        super(msg, 4)
+    end
+end
+
+class OtherError < RPNError 
+    def initialize(msg)
+        super(msg, 5)
+    end
 end
