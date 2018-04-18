@@ -1,4 +1,4 @@
-source "https://rubygems.org"
+source 'https://rubygems.org'
 
-gem "minitest"
-gem "rubocop"
+gem 'minitest'
+gem 'rubocop'
