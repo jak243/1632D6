@@ -1,5 +1,8 @@
-require './rpnclasses.rb'
+require 'simplecov'
 require 'minitest/autorun'
+SimpleCov.start
+require './rpnclasses.rb'
+
 
 class MethodsTest < Minitest::Test
   def setup
